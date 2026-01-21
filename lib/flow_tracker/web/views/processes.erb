@@ -1,0 +1,92 @@
+<h2 style="margin-bottom: 20px;">Process Definitions</h2>
+
+<form class="filter-form" method="get" action="<%= root_path %>/processes">
+  <input type="text" name="name" placeholder="Search by name..." value="<%= params[:name] %>">
+
+  <select name="category">
+    <option value="">All Categories</option>
+    <option value="0" <%= 'selected' if params[:category] == '0' %>>Jobs</option>
+    <option value="1" <%= 'selected' if params[:category] == '1' %>>Services</option>
+    <option value="2" <%= 'selected' if params[:category] == '2' %>>API</option>
+    <option value="3" <%= 'selected' if params[:category] == '3' %>>Other</option>
+  </select>
+
+  <button type="submit" class="btn btn-primary">Filter</button>
+  <a href="<%= root_path %>/processes" class="btn btn-secondary">Clear</a>
+</form>
+
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Business Logic</th>
+        <th>Category</th>
+        <th>Total Flows</th>
+        <th>Completed</th>
+        <th>Failed</th>
+        <th>Success Rate</th>
+        <th>Avg Duration</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @processes.each do |process| %>
+        <% stats = process.stats %>
+        <tr>
+          <td>
+            <a href="<%= process_path(process) %>"><%= process.name %></a>
+            <% if process.description.present? %>
+              <div style="font-size: 11px; color: var(--text-muted);">
+                <%= truncate_value(process.description, max_length: 60) %>
+              </div>
+            <% end %>
+            <% unless process.active %>
+              <span class="status-badge status-skipped" style="font-size: 10px;">inactive</span>
+            <% end %>
+          </td>
+          <td style="font-family: monospace; font-size: 12px;"><%= process.business_logic %></td>
+          <td><%= category_name(process.category) %></td>
+          <td><%= stats[:total_flows] %></td>
+          <td><%= stats[:completed] %></td>
+          <td>
+            <% if stats[:failed] > 0 %>
+              <span style="color: var(--error);"><%= stats[:failed] %></span>
+            <% else %>
+              <%= stats[:failed] %>
+            <% end %>
+          </td>
+          <td>
+            <% if process.success_rate %>
+              <span class="<%= process.success_rate >= 90 ? 'status-completed' : (process.success_rate >= 70 ? '' : 'status-failed') %>">
+                <%= process.success_rate %>%
+              </span>
+            <% else %>
+              -
+            <% end %>
+          </td>
+          <td><%= format_duration(stats[:avg_duration_ms]) %></td>
+          <td>
+            <a href="<%= process_path(process) %>" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">
+              View Flows
+            </a>
+            <form action="<%= process_path(process) %>" method="post" style="display: inline;">
+              <input type="hidden" name="_method" value="delete">
+              <button type="submit" class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="return confirm('Delete this process and all its flows?')">
+                Delete
+              </button>
+            </form>
+          </td>
+        </tr>
+      <% end %>
+
+      <% if @processes.empty? %>
+        <tr>
+          <td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 40px;">
+            No processes found
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

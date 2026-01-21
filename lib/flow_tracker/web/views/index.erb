@@ -1,0 +1,163 @@
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="value"><%= @stats[:processes_count] %></div>
+    <div class="label">Process Definitions</div>
+  </div>
+  <div class="stat-card">
+    <div class="value"><%= @stats[:total_flows] %></div>
+    <div class="label">Total Executions</div>
+  </div>
+  <div class="stat-card">
+    <div class="value"><%= @stats[:flows_today] %></div>
+    <div class="label">Today</div>
+  </div>
+  <div class="stat-card running">
+    <div class="value"><%= @stats[:running] %></div>
+    <div class="label">Running</div>
+  </div>
+  <div class="stat-card completed">
+    <div class="value"><%= @stats[:completed] %></div>
+    <div class="label">Completed</div>
+  </div>
+  <div class="stat-card failed">
+    <div class="value"><%= @stats[:failed] %></div>
+    <div class="label">Failed</div>
+  </div>
+</div>
+
+<% if @stats[:failed_today] > 0 %>
+  <div class="card" style="border-left: 3px solid var(--error);">
+    <div class="card-header">
+      <span class="card-title" style="color: var(--error);"><%= @stats[:failed_today] %> Failed Today</span>
+    </div>
+  </div>
+<% end %>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Process Definitions</span>
+    <a href="<%= root_path %>/processes" class="btn btn-secondary">View All</a>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Business Logic</th>
+          <th>Category</th>
+          <th>Total Flows</th>
+          <th>Success Rate</th>
+          <th>Last Execution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @processes.each do |process| %>
+          <% stats = process.stats %>
+          <tr>
+            <td>
+              <a href="<%= process_path(process) %>"><%= process.name %></a>
+              <% if process.description.present? %>
+                <div style="font-size: 11px; color: var(--text-muted);">
+                  <%= truncate_value(process.description, max_length: 60) %>
+                </div>
+              <% end %>
+            </td>
+            <td style="font-family: monospace; font-size: 12px;"><%= process.business_logic %></td>
+            <td><%= category_name(process.category) %></td>
+            <td><%= stats[:total_flows] %></td>
+            <td>
+              <% if process.success_rate %>
+                <span class="<%= process.success_rate >= 90 ? 'status-completed' : (process.success_rate >= 70 ? '' : 'status-failed') %>">
+                  <%= process.success_rate %>%
+                </span>
+              <% else %>
+                -
+              <% end %>
+            </td>
+            <td><%= time_ago(stats[:last_execution]) %></td>
+          </tr>
+        <% end %>
+
+        <% if @processes.empty? %>
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 40px;">
+              No processes tracked yet
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Recent Executions</span>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Process</th>
+          <th>Status</th>
+          <th>Started</th>
+          <th>Duration</th>
+          <th>Progress</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @recent_flows.each do |flow| %>
+          <tr>
+            <td>
+              <a href="<%= flow_path(flow) %>"><%= flow.process.name %></a>
+              <% if present?(flow.metadata) && flow.metadata.any? %>
+                <div style="font-size: 11px; color: var(--text-muted);">
+                  <%= format_metadata(flow.metadata) %>
+                </div>
+              <% end %>
+            </td>
+            <td><span class="status-badge <%= status_class(flow.status) %>"><%= status_name(flow.status) %></span></td>
+            <td><%= time_ago(flow.started_at) %></td>
+            <td><%= format_duration(flow.duration_ms) %></td>
+            <td>
+              <% if flow.total && flow.total > 0 %>
+                <%= flow.ok_count %>/<%= flow.total %>
+                <% if flow.ko_count > 0 %>
+                  <span style="color: var(--error);">(+<%= flow.ko_count %> failed)</span>
+                <% end %>
+              <% else %>
+                -
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+
+        <% if @recent_flows.empty? %>
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 40px;">
+              No executions yet
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<% if @stats[:by_category].any? %>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Processes by Category</span>
+    </div>
+    <div class="stats-grid" style="margin-bottom: 0;">
+      <% @stats[:by_category].each do |category, count| %>
+        <div class="stat-card">
+          <div class="value"><%= count %></div>
+          <div class="label"><%= category_name(category) || 'Unknown' %></div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

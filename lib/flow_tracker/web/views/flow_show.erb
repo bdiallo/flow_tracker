@@ -1,0 +1,113 @@
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  <h2>
+    Execution: <%= @process.name %>
+    <span class="status-badge <%= status_class(@flow.status) %>"><%= status_name(@flow.status) %></span>
+  </h2>
+  <div>
+    <a href="<%= process_path(@process) %>" class="btn btn-secondary">Back to Process</a>
+    <form action="<%= flow_path(@flow) %>" method="post" style="display: inline;">
+      <input type="hidden" name="_method" value="delete">
+      <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this execution?')">
+        Delete
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="process-meta">
+  <div class="meta-item">
+    <div class="label">Process</div>
+    <div class="value"><a href="<%= process_path(@process) %>"><%= @process.name %></a></div>
+  </div>
+  <div class="meta-item">
+    <div class="label">Business Logic</div>
+    <div class="value" style="font-family: monospace;"><%= @process.business_logic %></div>
+  </div>
+  <div class="meta-item">
+    <div class="label">Started At</div>
+    <div class="value"><%= format_time(@flow.started_at) %></div>
+  </div>
+  <div class="meta-item">
+    <div class="label">Finished At</div>
+    <div class="value"><%= format_time(@flow.finished_at) %></div>
+  </div>
+  <div class="meta-item">
+    <div class="label">Duration</div>
+    <div class="value"><%= format_duration(@flow.duration_ms) %></div>
+  </div>
+  <div class="meta-item">
+    <div class="label">Triggered By</div>
+    <div class="value"><%= @flow.triggered_by || '-' %></div>
+  </div>
+  <% if @flow.correlation_id.present? %>
+    <div class="meta-item">
+      <div class="label">Correlation ID</div>
+      <div class="value" style="font-family: monospace; font-size: 11px;"><%= @flow.correlation_id %></div>
+    </div>
+  <% end %>
+  <% if @flow.total && @flow.total > 0 %>
+    <div class="meta-item">
+      <div class="label">Progress</div>
+      <div class="value">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="flex: 1; height: 12px; background: var(--border); border-radius: 6px; overflow: hidden; min-width: 100px;">
+            <div style="width: <%= [(@flow.ok_count.to_f / @flow.total * 100), 100].min %>%; height: 100%; background: var(--success);"></div>
+          </div>
+          <span><%= @flow.ok_count %>/<%= @flow.total %></span>
+        </div>
+        <% if @flow.ko_count > 0 || @flow.skip_count > 0 %>
+          <div style="font-size: 12px; margin-top: 4px;">
+            <% if @flow.ko_count > 0 %>
+              <span style="color: var(--error);"><%= @flow.ko_count %> failed</span>
+            <% end %>
+            <% if @flow.skip_count > 0 %>
+              <span style="color: var(--warning);"><%= @flow.skip_count %> skipped</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+  <% if present?(@flow.metadata) && @flow.metadata.any? %>
+    <div class="meta-item" style="grid-column: 1 / -1;">
+      <div class="label">Metadata</div>
+      <div class="value"><pre style="margin: 0; font-size: 12px;"><%= JSON.pretty_generate(@flow.metadata) %></pre></div>
+    </div>
+  <% end %>
+</div>
+
+<% if @flow.error_message %>
+  <div class="error-box">
+    <strong>Error:</strong> <%= @flow.error_message %>
+    <% if @flow.error_backtrace %>
+      <pre><%= @flow.error_backtrace %></pre>
+    <% end %>
+  </div>
+<% end %>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Log Entries (<%= @log_entries.count %>)</span>
+  </div>
+
+  <% if @log_entries.any? %>
+    <div class="log-entries">
+      <% @log_entries.each do |entry| %>
+        <div class="log-entry">
+          <span class="timestamp"><%= entry.logged_at&.strftime("%H:%M:%S.%L") %></span>
+          <span class="level-badge <%= level_class(entry.level) %>"><%= level_name(entry.level) %></span>
+          <span class="message"><%= entry.content %></span>
+          <% if present?(entry.context) && entry.context.any? %>
+            <span style="color: var(--text-muted); font-size: 11px;">
+              (<%= format_metadata(entry.context) %>)
+            </span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p style="color: var(--text-secondary); text-align: center; padding: 20px;">
+      No log entries recorded
+    </p>
+  <% end %>
+</div>
